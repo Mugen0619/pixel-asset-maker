@@ -1,0 +1,44 @@
+# プロジェクトごとの「道具の準備」。
+# CI①(ci.yml)と CI③(claude-issue-implement.yml)の両方が、テストの前にこのファイルを呼び出す。
+# プロジェクトで使う言語・ツールのインストール手順を、下の steps に書く。
+#
+# 書くときの注意:
+#   - 各ステップに `shell: bash` が必要(composite action の決まり)。
+#   - 外部のActionは、タグ(@v4 など)ではなくコミットSHAで固定する。タグは後から付け替えられるため。
+#   - ダウンロードしたファイルは、チェックサム(改ざん検知用の値)を照合してから使う。
+#   - バージョンは、プロジェクトの文書(PROJECT_CONTEXT.md / decisions.md)と同じ値に固定する。
+name: Set up project
+description: プロジェクトで使う言語・ツールを準備する(プロジェクトごとに書き換える)
+
+runs:
+  using: composite
+  steps:
+    # ひな形の初期状態。準備が必要な道具はまだない。技術構成が決まったら、このステップを置き換える。
+    - name: No setup required yet
+      shell: bash
+      run: echo "道具の準備は不要です(.github/actions/setup-project/action.yml は未設定)。"
+
+    # ---- 例1: Node.js(React / Vite など) ----
+    # - name: Set up Node.js
+    #   uses: actions/setup-node@<コミットSHA> # <バージョンのタグ>
+    #   with:
+    #     node-version-file: .nvmrc   # Node.jsのバージョンを .nvmrc で固定する場合
+    #     cache: npm                  # 依存パッケージのキャッシュ(毎回のダウンロードを避ける)
+    # - name: Install dependencies
+    #   shell: bash
+    #   run: npm ci                   # package-lock.json のとおりにインストールする
+
+    # ---- 例2: Godot(night-shift-escape で使用した方法) ----
+    # - name: Download Godot
+    #   shell: bash
+    #   env:
+    #     GODOT_VERSION: <バージョン>
+    #     GODOT_SHA512: <godotengine/godot-builds の SHA512-SUMS.txt の値>
+    #   run: |
+    #     zip="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+    #     curl -fsSL -o "$zip" "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/${zip}"
+    #     echo "${GODOT_SHA512}  ${zip}" | sha512sum -c -
+    #     mkdir -p ~/godot && unzip -q "$zip" -d ~/godot && rm "$zip"
+    #     godot="$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+    #     chmod +x "$godot"
+    #     sudo ln -sf "$godot" /usr/local/bin/godot   # `godot` コマンドで実行できるようにする

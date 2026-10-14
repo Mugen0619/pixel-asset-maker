@@ -61,6 +61,7 @@ Godot・Unityなどで2Dゲームを制作する個人開発者。
 - 学習を兼ねた個人開発です。AI(Claude Code・ChatGPT・Gemini)を活用しつつ、指示・レビュー・検証と最終判断は開発者本人が行います。
 - AIが生成したコードの処理内容と、技術を選んだ理由を、開発者自身が説明できる状態を目指しています。
 - 作業は、Issue → ブランチ → Pull Request の流れで進めます。
+- GitHub Actionsで、テスト・AIによるコードレビュー・Issueからの自動実装を行う仕組みを入れています(Mergeは開発者が判断します)。
 
 ## ドキュメント
 
@@ -68,3 +69,4 @@ Godot・Unityなどで2Dゲームを制作する個人開発者。
 |---|---|
 | [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md) | プロジェクトの現在の全体像(目的・MVP・技術構成の候補・未決定事項) |
 | [decisions.md](./decisions.md) | 技術・設計上の判断とその理由、検討中の事項 |
+| [docs/AUTOMATION_SETUP.md](./docs/AUTOMATION_SETUP.md) | 自動化(CI)の設定手順 |

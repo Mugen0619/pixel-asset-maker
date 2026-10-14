@@ -1,0 +1,37 @@
+# CI①: テストの実行。
+# PRと、mainへのpushで動く。何をテストするかは、プロジェクトごとの次の2ファイルで決まる。
+#   .github/actions/setup-project/action.yml : 道具の準備(言語・ツールのインストール)
+#   .github/scripts/ci-test.sh               : テストの実行
+# このworkflow自体は、どのプロジェクトでも同じ内容のまま使う。
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# 同じブランチ(PR)に続けてpushしたら、古い実行をキャンセルする。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up project
+        uses: ./.github/actions/setup-project
+
+      - name: Run tests
+        run: bash .github/scripts/ci-test.sh
