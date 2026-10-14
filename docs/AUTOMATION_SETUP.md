@@ -59,12 +59,28 @@ CI③は、PRをGitHub App(`night-shift-escape-pr-creator`)の名義で作る。
    gh variable list -R Mugen0619/night-shift-escape          # CLAUDE_PR_APP_CLIENT_ID の値を確認
    gh variable set CLAUDE_PR_APP_CLIENT_ID -R <owner>/<repo> --body "<Client ID>"
    ```
-3. **Appの秘密鍵(Private Key)を登録する:**
-   Appを作ったときにダウンロードした `.pem` ファイルを使う。
-   ```bash
-   gh secret set CLAUDE_PR_APP_PRIVATE_KEY -R <owner>/<repo> < "<.pemファイルのパス>"
-   ```
-   `.pem` ファイルが手元にない場合は、Appの設定画面(Settings → Developer settings → GitHub Apps → 対象のApp)で新しい秘密鍵を生成する。
+3. **Appの秘密鍵(Private Key)を登録する(Git Bashで行う):**
+   Appを作ったときにダウンロードした `.pem` ファイルを使う。手元にない場合は、Appの設定画面(Settings → Developer settings → GitHub Apps → 対象のApp → Private keys)で新しい秘密鍵を生成する。古い鍵を削除しない限り、ほかのリポジトリはそのまま動く。
+
+   以下の例の `<ユーザー名>`・`<ファイル名>` は、**実際のパス・ファイル名に置き換える。`<` `>` の目印も残さない。** Git Bashでは、Windowsの `C:\Users\...` を `/c/Users/...` と書く。
+
+   1. **ファイルがあり、サイズが0バイトでないことを確認する(中身は表示しない):**
+      ```bash
+      ls -l "/c/Users/<ユーザー名>/Downloads/<ファイル名>.pem"
+      ```
+      5列目の数字がファイルのサイズ(バイト)。`No such file or directory` と出たら、パスかファイル名が違う。サイズが0なら中身が空なので使わない。
+   2. **登録する(入力リダイレクトで、ファイルの中身を渡す):**
+      ```bash
+      gh secret set CLAUDE_PR_APP_PRIVATE_KEY -R <owner>/<repo> < "/c/Users/<ユーザー名>/Downloads/<ファイル名>.pem"
+      ```
+      パスの前の `<` は「このファイルの中身を渡す」という意味の記号なので、消さない。`✓ Set Actions secret CLAUDE_PR_APP_PRIVATE_KEY for <owner>/<repo>` と表示されれば登録できている。
+   3. **秘密鍵の中身を外に出さない:**
+      - `cat` などで、中身をターミナルに表示しない。
+      - チャット(AIとの会話を含む)・Issue・PR・コミットメッセージに貼らない。
+      - リポジトリのフォルダに置かない・コミットしない(`.gitignore` で `*.pem` を除外しているが、それに頼らない)。
+      - 登録後の `.pem` ファイルは、パスワード管理ツールなど安全な場所に保管する。
+
+   **PowerShellで登録した場合の記録(原因は未確認):** pixel-asset-maker(2026-10-14)で、PowerShellのパイプ(`Get-Content -Raw "<パス>" | gh secret set ...`)で登録したところ、登録コマンドは完了したが、CI③の実行時には秘密鍵が空として扱われ、PRの作成の段階で失敗した。上記のGit Bashの方法で登録し直すと成功した。PowerShellの方法で失敗した原因は確認できていないため、この手順ではGit Bashの方法を使う。
 
 Appに必要な権限は、Contents: Read-only と Pull requests: Read & write の2つだけ。
 
@@ -96,6 +112,37 @@ gh variable set CLAUDE_EXTRA_ALLOWED_TOOLS -R <owner>/<repo> --body ",Bash(npm r
 2. **CI①が失敗を検知できること:** わざとテストが失敗する変更(例: `decisions.md`を一時的に削除する)をPRにして、CI①が失敗することを確認する。確認後、そのPRは閉じる。
 3. **CI②:** PRにGeminiのレビューコメントが付くことを確認する。CIが成功(緑)でも、コメントの判定(指摘の有無)まで読む。
 4. **CI③:** 小さなIssue(例: READMEに1行追加)を作って`claude-ready`を付け、PRが自動で作られ、そのPRでCI①・CI②が承認待ちにならずに動くことを確認する。
+
+## CI③が途中で失敗した場合
+
+CI③は3つの段階(ジョブ)に分かれている。どの段階で失敗したかによって、残っているもの(ブランチ等)が変わる。
+
+| 段階(ジョブ名) | 内容 |
+|---|---|
+| `Check trigger` | 実行してよいかの判定(ラベル・権限・既存のブランチやPRの有無) |
+| `Implement with Claude Code` | Claude Codeによる実装・commitと、作業ブランチ `claude/issue-<N>` へのpush |
+| `Create pull request` | GitHub Appの名義でPRを作成 |
+
+**手順:**
+
+1. **失敗した段階を特定する。**
+   ```bash
+   gh run list -R <owner>/<repo> --workflow "CI③ Claude Issue Implementation" --limit 5   # 実行IDを確認
+   gh run view <実行ID> -R <owner>/<repo>               # どの段階(ジョブ)が失敗したか
+   gh run view <実行ID> -R <owner>/<repo> --log-failed  # 失敗した段階のログ
+   ```
+   ブラウザでは、リポジトリの Actions タブ → 該当の実行 → 失敗(赤い×)の段階を開く。
+2. **ログから原因を確かめ、直す**(例: Secretの登録し直し)。原因が分からないまま再実行を繰り返さない。
+3. **失敗した段階だけを再実行する。**
+   ```bash
+   gh run rerun <実行ID> -R <owner>/<repo> --failed
+   ```
+   ブラウザでは、該当の実行の「Re-run jobs」→「Re-run failed jobs」。成功した段階はやり直さず、その結果を使って続きから実行する。pixel-asset-maker(2026-10-14)では、`Create pull request` だけが失敗した実行を、秘密鍵を登録し直してからこの方法で再実行し、PRを作成できた。
+
+**安易にラベルを付け直さない:**
+- CI③は、既存の作業を上書きしないため、同じIssueの作業ブランチ `claude/issue-<N>` や、そのIssueを閉じるopen PRがすでにあると「実行しない」と判定する(`Check trigger` の段階)。
+- 実装・pushの後の段階で失敗した場合は作業ブランチが残っているため、ラベルを付け直しても動かない。
+- ラベルを付け直して最初からやり直すのは、作業ブランチとPRが残っていないことを確認し、実装をやり直させたい場合だけにする。残っているブランチを削除するかどうかは、開発者が判断する。
 
 ## 運用上の注意
 
