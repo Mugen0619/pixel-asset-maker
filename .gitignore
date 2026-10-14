@@ -1,0 +1,34 @@
+# ---- 秘密情報(APIキー・環境変数)。絶対にコミットしない ----
+.env
+.env.*
+# テンプレート(値を空にした見本)だけはコミットしてよい
+!.env.example
+*.pem
+*.key
+
+# ---- 依存パッケージ(npm installで再取得できる) ----
+node_modules/
+
+# ---- ビルド・ツールが自動生成するもの ----
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+
+# ---- AIで生成した画像など、ローカルで試した出力の置き場所 ----
+/generated/
+
+# ---- ログ ----
+*.log
+npm-debug.log*
+
+# ---- エディタ・OSが自動生成するファイル ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
