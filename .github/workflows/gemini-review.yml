@@ -1,0 +1,74 @@
+# PRの変更内容をGemini APIにレビューさせ、結果をPRコメントに投稿する。
+# CI②。テスト(ci.yml、CI①)とは責務を分け、こちらはコードレビューだけを行う。
+# PRのApprove・Mergeは行わない(最終判断は開発者)。
+name: CI② Gemini PR Review
+
+on:
+  pull_request:
+    branches: [main]
+    # opened: PR作成 / synchronize: PRへのpush / reopened: 再オープン / ready_for_review: Draft解除
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# 同じPRで続けてpushされたら、古いレビューをキャンセルして最新のコミットだけをレビューする(API呼び出しの節約)。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # diffとプロジェクト文書の読み取り
+  issues: read # PR本文の Closes #N から関連Issueを読む
+  pull-requests: write # PRへのレビューコメントの投稿
+
+env:
+  # Gemini APIのモデル。リポジトリ変数 GEMINI_MODEL を設定すれば、workflowを変えずに切り替えられる。
+  GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
+
+jobs:
+  review:
+    name: Gemini review
+    # fork PRではSecretが渡されないため実行しない(pull_request_targetでSecretを渡す構成は採らない)。
+    # DraftのPRもAPI呼び出しを減らすため対象外とし、Draft解除(ready_for_review)時にレビューする。
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # Secretが未設定のリポジトリでは、失敗にせず、警告を出してレビューを行わない。
+      # (自動化の設定が終わる前のリポジトリでも、CI①だけで開発を進められるようにするため)
+      - name: Check Gemini credential
+        id: cred
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "::warning title=Geminiレビューは実行していません::Repository Secret GEMINI_API_KEY が設定されていません。このPRは自動レビューされていません。"
+            echo "### CI② Geminiレビュー" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **未実行:** GEMINI_API_KEY が設定されていないため、レビューを行っていません。" >> "$GITHUB_STEP_SUMMARY"
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.cred.outputs.available == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # base...head のdiffを取るため、履歴をすべて取得する。
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Review with Gemini
+        if: steps.cred.outputs.available == 'true'
+        # PRタイトル・本文などの外部入力は、run: に直接展開せず環境変数で渡す(スクリプトインジェクション対策)。
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 .github/scripts/gemini_review.py

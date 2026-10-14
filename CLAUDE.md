@@ -2,6 +2,8 @@
 
 **複数プロジェクト共通のルール・既知の落とし穴は先に [../../AI_MEMORY/README.md](../../AI_MEMORY/README.md) を読むこと。** 以下は本プロジェクト固有のルールで、共通ルールと矛盾する場合はこちらを優先する。
 
+(GitHub Actions上など、AI_MEMORYを読めない環境では、このリポジトリ内のルールに従う)
+
 このプロジェクトの現在の全体像は [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md)、重要な判断とその理由は [decisions.md](./decisions.md) を参照すること。
 
 ## 開発ルール
@@ -18,6 +20,8 @@
 - **費用が発生する操作は、開発者の明示的な承認なしに行わない。** APIキーの取得、課金登録、有料サービスへの登録、本番環境へのデプロイを含む。
 - **APIキーなどの秘密情報を、ソースコード・Git・ブラウザ側のコードに含めない。** `.env`はGit管理外とし、値を空にした`.env.example`だけをコミットする。
 - **MVPに含めない機能(PROJECT_CONTEXT.md 5章)を、確認なしに実装しない。**
+- **自動実装(CI③)は、開発者がIssueに`claude-ready`ラベルを付けたときだけ動く。** AIが自分でラベルを付けない。設定手順は [docs/AUTOMATION_SETUP.md](./docs/AUTOMATION_SETUP.md)。
+- **`.github/`配下(CI・workflow・スクリプト)の変更は、開発者の確認を得てから行う。** CI③のClaude Codeは、`.github/`配下を変更できない。
 - **AIで生成した画像などローカルでの試作物は、`generated/`フォルダに置く。** このフォルダはGit管理外。
 
 (技術スタックの詳細・ポート番号などは、技術構成の確定後にここへ追記する)
