@@ -80,7 +80,7 @@ MVP(最初に完成させる最小限の範囲)の**詳細な機能一覧は未�
 - **完了:** プロジェクトフォルダとGitリポジトリの作成、管理文書の作成、AI開発の自動化の仕組みの導入(Decision 004。ファイルの追加まで)
 - **未着手:** 要件定義(MVPの機能一覧の確定)、技術構成の確定、アプリ本体の実装
 - **未導入:** 依存パッケージ、AI画像生成API、データベース、デプロイ
-- **未設定:** CI③(Claude実装)を動かすためのSecret・GitHub App(10章)。CI②(Geminiレビュー)は設定済み
+- **自動化:** CI①・CI②・CI③とも設定済みで、動作を確認した(2026-10-14。10章)
 
 ## 9. 未決定事項
 
@@ -102,9 +102,9 @@ MVP(最初に完成させる最小限の範囲)の**詳細な機能一覧は未�
 
 | 名前 | 内容 | 動くきっかけ | 現在の状態 |
 |---|---|---|---|
-| CI① テスト | `.github/scripts/ci-test.sh` を実行する | PR、`main`へのpush | 動作する。内容は共通チェックのみ(管理文書の有無、`.env`の混入、自動化スクリプトの文法) |
-| CI② Geminiレビュー | PRの変更をGeminiがレビューし、PRにコメントする | PRの作成・更新 | 設定済み(2026-10-14に`GEMINI_API_KEY`を登録)。モデルは既定のまま(Variable `GEMINI_MODEL`は未設定) |
-| CI③ Claude実装 | IssueをClaude Codeが実装し、PRを作る | Issueに`claude-ready`ラベルを付ける | **未設定**(Secret 2つ・Variable 1つの登録と、GitHub Appのインストールが必要) |
+| CI① テスト | `.github/scripts/ci-test.sh` を実行する | PR、`main`へのpush | 動作確認済み(成功)。内容は共通チェックのみ(管理文書の有無、`.env`の混入、自動化スクリプトの文法) |
+| CI② Geminiレビュー | PRの変更をGeminiがレビューし、PRにコメントする | PRの作成・更新 | 動作確認済み(成功)。2026-10-14に`GEMINI_API_KEY`を登録。PR #4・#6でレビューコメントの投稿を確認し、判定はいずれも「修正が必要な指摘なし」。モデルは既定のまま(Variable `GEMINI_MODEL`は未設定) |
+| CI③ Claude実装 | IssueをClaude Codeが実装し、PRを作る | Issueに`claude-ready`ラベルを付ける | 動作確認済み(成功)。2026-10-14にSecret・Variable・GitHub Appを設定。Issue #5で、実行判定 → Claude Codeによる実装・commit・push → GitHub App名義のPR作成(PR #6)まで成功を確認。PR #6で、CI①・CI②が承認待ちにならずに自動で起動することを確認した |
 
 - 自動でMergeはしない。Mergeは開発者が判断する。
 - プロジェクトごとに書き換える3ファイル(`.github/actions/setup-project/action.yml`、`.github/scripts/ci-test.sh`、`.gemini/styleguide.md`)は、技術構成の確定後に更新する。
